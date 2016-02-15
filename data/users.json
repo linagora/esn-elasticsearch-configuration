@@ -1,0 +1,71 @@
+{
+   "settings": {
+      "analysis": {
+         "filter": {
+            "nGram_filter": {
+               "type": "nGram",
+               "min_gram": 1,
+               "max_gram": 20,
+               "token_chars": [
+                  "letter",
+                  "digit",
+                  "punctuation",
+                  "symbol"
+               ]
+            }
+         },
+         "analyzer": {
+            "nGram_analyzer": {
+               "type": "custom",
+               "tokenizer": "whitespace",
+               "filter": [
+                  "lowercase",
+                  "asciifolding",
+                  "nGram_filter"
+               ]
+            },
+            "whitespace_analyzer": {
+               "type": "custom",
+               "tokenizer": "whitespace",
+               "filter": [
+                  "lowercase",
+                  "asciifolding"
+               ]
+            }
+         }
+      }
+   },
+   "mappings": {
+      "users" : {
+        "properties" : {
+            "firstname" : {
+               "type": "string",
+               "index_analyzer": "nGram_analyzer",
+               "search_analyzer": "whitespace_analyzer",
+			   "fields": {
+			   	"sort": {
+			   	"type": "string",
+			   	"index": "not_analyzed"
+		   		}
+	   		   }
+            },
+            "lastname" : {
+               "type": "string",
+               "index_analyzer": "nGram_analyzer",
+               "search_analyzer": "whitespace_analyzer"
+            },
+            "accounts": {
+               "type": "nested",
+               "include_in_parent": true,
+               "properties": {
+                  "emails" : {
+                     "type": "string",
+                     "index_analyzer": "nGram_analyzer",
+                     "search_analyzer": "whitespace_analyzer"
+                  }
+               }
+            }
+         }
+      }
+   }
+}
