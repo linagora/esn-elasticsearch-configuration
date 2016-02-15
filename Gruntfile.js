@@ -26,7 +26,8 @@ module.exports = function(grunt) {
             expand: true,
             src: [
               '<%= project.lib %>/**/*.js',
-              '<%= project.bin %>/**/*.js'
+              '<%= project.bin %>/**/*.js',
+              '<%= project.test %>/**/*.js'
             ],
             dest: '<%= project.dist %>/'
           }
@@ -61,6 +62,23 @@ module.exports = function(grunt) {
           '<%= project.bin %>/**/*.js'
         ]
       }
+    },
+
+    mochaTest: {
+      test: {
+        options: {
+          reporter: 'spec',
+          captureFile: 'results.txt',
+          quiet: false,
+          clearRequireCache: false
+        },
+        src: ['<%= project.dist %>/test/**/*.js']
+      }
+    },
+
+    watch: {
+      files: ['<%= jshint.all.src %>'],
+      tasks: ['test']
     },
 
     jscs: {
@@ -132,6 +150,7 @@ module.exports = function(grunt) {
   grunt.registerTask('compile', 'Compile from ES6 to ES5', ['clean:dist', 'copy:data', 'babel']);
   grunt.registerTask('linters', 'Check code for lint', ['jshint:all', 'jscs:lint', 'lint_pattern:all']);
   grunt.registerTask('package', 'Package module', ['clean:dist', 'linters', 'copy:data', 'babel']);
-  grunt.registerTask('default', ['linters', 'compile']);
-
+  grunt.registerTask('test', ['package', 'mochaTest']);
+  grunt.registerTask('dev', 'Launch tests then for each changes relaunch it', ['test', 'watch']);
+  grunt.registerTask('default', ['test']);
 };
