@@ -39,7 +39,6 @@
     "mockery": "^1.4.0"
   },
   "scripts": {
-    "postinstall": "grunt compile",
     "test": "grunt test"
   },
   "bin": {
