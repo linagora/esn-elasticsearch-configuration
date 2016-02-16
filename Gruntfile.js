@@ -124,23 +124,7 @@ module.exports = function(grunt) {
     },
     release: {
       options: {
-        file: 'package.json',
-        commitMessage: 'Bumped version to <%= version %>',
-        tagName: 'v<%= version %>',
-        tagMessage: 'Version <%= version %>',
-        afterBump: ['exec:gitcheckout_ReleaseBranch', 'test', 'apidoc'],
-        afterRelease: ['exec:gitcheckout_master']
-      }
-    },
-
-    exec: {
-      gitcheckout_ReleaseBranch: {
-        cmd: function() {
-          return 'git checkout -b release-' + this.file.readJSON('package.json').version;
-        }
-      },
-      gitcheckout_master: {
-        cmd: 'git checkout master'
+        tagName: 'v<%= version %>'
       }
     }
   });
