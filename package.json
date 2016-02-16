@@ -11,7 +11,7 @@
   "files": [
     "dist"
   ],
-  "main": "dist/index.js",
+  "main": "dist/lib/index.js",
   "keywords": [
     "openpaas",
     "esn",
@@ -43,7 +43,7 @@
     "test": "grunt test"
   },
   "bin": {
-    "esn-elasticsearch-configure": "./bin/index.js"
+    "esn-elasticsearch-configure": "./dist/bin/index.js"
   },
   "license": "MIT",
   "dependencies": {
