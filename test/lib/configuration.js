@@ -20,7 +20,7 @@ describe('The configuration class', () => {
   });
 
   function requireConfiguration() {
-    return require('../../lib/configuration').default;
+    return require('../../lib/configuration');
   }
 
   describe('The getIndexUrl function', () => {
