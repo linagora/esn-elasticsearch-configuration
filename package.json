@@ -19,6 +19,7 @@
   ],
   "repository": "https://chamerling@ci.open-paas.org/stash/scm/~chamerling/esn-elasticsearch-configuration.git",
   "devDependencies": {
+    "babel-plugin-add-module-exports": "^0.1.2",
     "babel-preset-es2015": "^6.5.0",
     "babelify": "6.3.0",
     "chai": "^3.5.0",
