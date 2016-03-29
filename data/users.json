@@ -40,7 +40,7 @@
         "properties" : {
             "firstname" : {
                "type": "string",
-               "index_analyzer": "nGram_analyzer",
+               "analyzer": "nGram_analyzer",
                "search_analyzer": "whitespace_analyzer",
 			   "fields": {
 			   	"sort": {
@@ -51,7 +51,7 @@
             },
             "lastname" : {
                "type": "string",
-               "index_analyzer": "nGram_analyzer",
+               "analyzer": "nGram_analyzer",
                "search_analyzer": "whitespace_analyzer"
             },
             "accounts": {
@@ -60,7 +60,7 @@
                "properties": {
                   "emails" : {
                      "type": "string",
-                     "index_analyzer": "nGram_analyzer",
+                     "analyzer": "nGram_analyzer",
                      "search_analyzer": "whitespace_analyzer"
                   }
                }
