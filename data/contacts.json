@@ -40,7 +40,7 @@
         "properties" : {
           "fn" : {
             "type": "string",
-            "index_analyzer": "nGram_analyzer",
+            "analyzer": "nGram_analyzer",
             "search_analyzer": "whitespace_analyzer",
 			      "fields": {
 			   	    "sort": {
@@ -51,17 +51,17 @@
          },
          "name": {
             "type": "string",
-            "index_analyzer": "nGram_analyzer",
+            "analyzer": "nGram_analyzer",
             "search_analyzer": "whitespace_analyzer"
          },
          "firstName" : {
             "type": "string",
-            "index_analyzer": "nGram_analyzer",
+            "analyzer": "nGram_analyzer",
             "search_analyzer": "whitespace_analyzer"
          },
          "lastName" : {
             "type": "string",
-            "index_analyzer": "nGram_analyzer",
+            "analyzer": "nGram_analyzer",
             "search_analyzer": "whitespace_analyzer"
          },
          "emails" : {
@@ -69,7 +69,7 @@
              "type": {"type": "string", "index": "no"},
              "value": {
                "type": "string",
-               "index_analyzer": "nGram_analyzer",
+               "analyzer": "nGram_analyzer",
                "search_analyzer": "whitespace_analyzer"
              }
            }
@@ -79,19 +79,19 @@
              "type": {"type": "string", "index": "no"},
              "value": {
                "type": "string",
-               "index_analyzer": "nGram_analyzer",
+               "analyzer": "nGram_analyzer",
                "search_analyzer": "whitespace_analyzer"
              }
            }
          },
          "org" : {
             "type": "string",
-            "index_analyzer": "nGram_analyzer",
+            "analyzer": "nGram_analyzer",
             "search_analyzer": "whitespace_analyzer"
          },
          "job" : {
             "type": "string",
-            "index_analyzer": "nGram_analyzer",
+            "analyzer": "nGram_analyzer",
             "search_analyzer": "whitespace_analyzer"
          },
          "urls" : {
@@ -99,7 +99,7 @@
              "type": {"type": "string", "index": "no"},
              "value": {
                "type": "string",
-               "index_analyzer": "nGram_analyzer",
+               "analyzer": "nGram_analyzer",
                "search_analyzer": "whitespace_analyzer"
              }
            }
@@ -108,7 +108,7 @@
            "properties": {
              "text": {
                "type": "string",
-               "index_analyzer": "nGram_analyzer",
+               "analyzer": "nGram_analyzer",
                "search_analyzer": "whitespace_analyzer"
              }
            }
@@ -118,52 +118,52 @@
              "type": {"type": "string", "index": "no"},
              "value": {
                "type": "string",
-               "index_analyzer": "nGram_analyzer",
+               "analyzer": "nGram_analyzer",
                "search_analyzer": "whitespace_analyzer"
              }
            }
          },
          "nickname" : {
             "type": "string",
-            "index_analyzer": "nGram_analyzer",
+            "analyzer": "nGram_analyzer",
             "search_analyzer": "whitespace_analyzer"
          },
          "birthday" : {
             "type": "string",
-            "index_analyzer": "nGram_analyzer",
+            "analyzer": "nGram_analyzer",
             "search_analyzer": "whitespace_analyzer"
          },
          "comments" : {
             "type": "string",
-            "index_analyzer": "nGram_analyzer",
+            "analyzer": "nGram_analyzer",
             "search_analyzer": "whitespace_analyzer"
          },
          "addresses" : {
            "properties": {
              "full": {
                "type": "string",
-               "index_analyzer": "nGram_analyzer",
+               "analyzer": "nGram_analyzer",
                "search_analyzer": "whitespace_analyzer"
              },
              "type": {"type": "string", "index": "no"},
              "street": {
                "type": "string",
-               "index_analyzer": "nGram_analyzer",
+               "analyzer": "nGram_analyzer",
                "search_analyzer": "whitespace_analyzer"
              },
              "city": {
                "type": "string",
-               "index_analyzer": "nGram_analyzer",
+               "analyzer": "nGram_analyzer",
                "search_analyzer": "whitespace_analyzer"
              },
              "zip": {
                "type": "string",
-               "index_analyzer": "nGram_analyzer",
+               "analyzer": "nGram_analyzer",
                "search_analyzer": "whitespace_analyzer"
              },
              "country": {
                "type": "string",
-               "index_analyzer": "nGram_analyzer",
+               "analyzer": "nGram_analyzer",
                "search_analyzer": "whitespace_analyzer"
              }
            }
