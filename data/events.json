@@ -1,0 +1,103 @@
+{
+  "settings": {
+    "analysis": {
+      "filter": {
+        "nGram_filter": {
+          "type": "nGram",
+          "min_gram": 1,
+          "max_gram": 20,
+          "token_chars": [
+            "letter",
+            "digit",
+            "punctuation",
+            "symbol"
+          ]
+        }
+      },
+      "analyzer": {
+        "nGram_analyzer": {
+          "type": "custom",
+          "tokenizer": "whitespace",
+          "filter": [
+            "lowercase",
+            "asciifolding",
+            "nGram_filter"
+          ]
+        },
+        "whitespace_analyzer": {
+          "type": "custom",
+          "tokenizer": "whitespace",
+          "filter": [
+            "lowercase",
+            "asciifolding"
+          ]
+        }
+      }
+    }
+  },
+  "mappings": {
+    "events": {
+      "_all": {
+        "analyzer": "nGram_analyzer",
+        "search_analyzer": "whitespace_analyzer"
+      },
+      "properties": {
+        "uid": {
+          "type": "string",
+          "index" : "not_analyzed"
+        },
+        "sequence": {
+          "type": "string",
+          "analyzer": "nGram_analyzer",
+          "search_analyzer": "whitespace_analyzer"
+        },
+        "summary" : {
+          "type": "string",
+          "analyzer": "nGram_analyzer",
+          "search_analyzer": "whitespace_analyzer"
+        },
+        "description" : {
+          "type": "string",
+          "analyzer": "nGram_analyzer",
+          "search_analyzer": "whitespace_analyzer"
+        },
+        "allDay": {
+          "type": "boolean"
+        },
+        "durationInDays": {
+          "type": "short"
+        },
+        "start" : {
+          "type": "date"
+        },
+        "end" : {
+          "type": "date"
+        },
+        "organizer" : {
+          "properties": {
+            "email": {"type": "string", "index": "not_analyzed"},
+            "cn": {
+              "type": "string",
+              "analyzer": "nGram_analyzer",
+              "search_analyzer": "whitespace_analyzer"
+            }
+          }
+        },
+        "attendees" : {
+          "properties": {
+            "email": {
+              "type": "string",
+              "analyzer": "nGram_analyzer",
+              "search_analyzer": "whitespace_analyzer"
+            },
+            "cn": {
+              "type": "string",
+              "analyzer": "nGram_analyzer",
+              "search_analyzer": "whitespace_analyzer"
+            }
+          }
+        }
+      }
+    }
+  }
+}
