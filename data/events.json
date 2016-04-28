@@ -46,6 +46,14 @@
           "type": "string",
           "index" : "not_analyzed"
         },
+        "calendarId": {
+          "type": "string",
+          "index" : "not_analyzed"
+        },
+        "userId": {
+          "type": "string",
+          "index" : "not_analyzed"
+        },
         "sequence": {
           "type": "string",
           "analyzer": "nGram_analyzer",
