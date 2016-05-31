@@ -39,7 +39,7 @@ describe('The configuration class', () => {
       let name = 'contacts';
 
       mockery.registerMock('fs-promise', {
-        readJSON: function(file) {
+        readJSON: (file) => {
           expect(file.indexOf('data/' + name + '.json') > 0).to.be.true;
           done();
         }
@@ -47,6 +47,23 @@ describe('The configuration class', () => {
 
       let Configuration = requireConfiguration();
       let c = new Configuration();
+
+      c.getIndexConfiguration(name);
+    });
+
+    it('should load configuration from local file from options path', (done) => {
+      let name = 'contacts';
+      let options = {path: '/foo/bar/'};
+
+      mockery.registerMock('fs-promise', {
+        readJSON: (file) => {
+          expect(file.indexOf(options.path + name + '.json') === 0).to.be.true;
+          done();
+        }
+      });
+
+      let Configuration = requireConfiguration();
+      let c = new Configuration(options);
 
       c.getIndexConfiguration(name);
     });
@@ -58,12 +75,12 @@ describe('The configuration class', () => {
       let name = 'contacts';
 
       mockery.registerMock('fs-promise', {
-        readJSON: function(file) {
+        readJSON: (file) => {
           return q.when(data);
         }
       });
       mockery.registerMock('request', {
-        post: function(options, callback) {
+        post: (options, callback) => {
           expect(options.url).to.be.defined;
           expect(options.body).to.deep.equal(data);
           expect(options.json).to.be.true;
