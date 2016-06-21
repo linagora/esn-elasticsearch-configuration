@@ -5,7 +5,7 @@
         "nGram_filter": {
           "type": "nGram",
           "min_gram": 1,
-          "max_gram": 20,
+          "max_gram": 36,
           "token_chars": [
             "letter",
             "digit",
@@ -15,7 +15,7 @@
         },
         "truncate_filter": {
           "type": "truncate",
-           length": 20
+           length": 36
         }
       },
       "analyzer": {
