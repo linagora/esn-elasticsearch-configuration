@@ -12,6 +12,10 @@
                   "punctuation",
                   "symbol"
                ]
+            },
+            "truncate_filter": {
+               "type": "truncate",
+               "length": 20
             }
          },
          "analyzer": {
@@ -20,6 +24,7 @@
                "tokenizer": "whitespace",
                "filter": [
                   "lowercase",
+                  "truncate_filter",
                   "asciifolding",
                   "nGram_filter"
                ]
@@ -29,6 +34,7 @@
                "tokenizer": "whitespace",
                "filter": [
                   "lowercase",
+                  "truncate_filter",
                   "asciifolding"
                ]
             }
