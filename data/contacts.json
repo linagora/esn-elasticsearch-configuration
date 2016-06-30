@@ -5,13 +5,17 @@
             "nGram_filter": {
                "type": "nGram",
                "min_gram": 1,
-               "max_gram": 20,
+               "max_gram": 36,
                "token_chars": [
                   "letter",
                   "digit",
                   "punctuation",
                   "symbol"
                ]
+            },
+            "truncate_filter": {
+               "type": "truncate",
+               "length": 36
             }
          },
          "analyzer": {
@@ -20,6 +24,7 @@
                "tokenizer": "whitespace",
                "filter": [
                   "lowercase",
+                  "truncate_filter",
                   "asciifolding",
                   "nGram_filter"
                ]
@@ -29,6 +34,7 @@
                "tokenizer": "whitespace",
                "filter": [
                   "lowercase",
+                  "truncate_filter",
                   "asciifolding"
                ]
             }
