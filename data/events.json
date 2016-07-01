@@ -15,7 +15,7 @@
         },
         "truncate_filter": {
           "type": "truncate",
-           length": 36
+           "length": 36
         }
       },
       "analyzer": {
