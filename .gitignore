@@ -4,3 +4,4 @@ dist
 results.txt
 .idea
 *.log
+jshint.xml
