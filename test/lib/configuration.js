@@ -255,7 +255,9 @@ describe('The configuration class', () => {
 
     beforeEach(() => {
       indexOptions = {
-        document: { id: 'document' }
+        document: { id: 'document' },
+        name: 'abc',
+        type: 'type'
       };
     });
 
@@ -290,15 +292,18 @@ describe('The configuration class', () => {
 
     it('should send back ES response on success', (done) => {
       const body = { foo: 'bar' };
+      const esOptions = { url: 'localhost:1234' };
 
       mockery.registerMock('request', {
         put: (options, callback) => {
+          expect(options.url).to.equal(`http://${esOptions.url}/${indexOptions.name}/${indexOptions.type}/${indexOptions.document.id}?refresh=true`);
+
           callback(null, { statusCode: 201 }, body);
         }
       });
 
       const Configuration = requireConfiguration();
-      const configurationInstance = new Configuration();
+      const configurationInstance = new Configuration(esOptions);
 
       configurationInstance.index(indexOptions).then((result) => {
         expect(result).to.deep.equal(body);
@@ -412,7 +417,8 @@ describe('The configuration class', () => {
 
       configurationInstance.reindexAll(options).then(() => {
         expect(configurationInstance.createIndex).to.have.been.calledTwice;
-        expect(configurationInstance.reindex).to.have.been.calledTwice;
+        expect(configurationInstance.reindex).to.have.been.calledOnce;
+        expect(configurationInstance.reindex).to.have.been.calledWith(`tmp_${options.name}`, options.name);
         expect(configurationInstance.deleteIndex).to.have.been.calledTwice;
         expect(configurationInstance.index).to.have.been.calledTwice;
         done();
