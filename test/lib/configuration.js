@@ -8,6 +8,7 @@ const sinon = require('sinon');
 const sinonChai = require('sinon-chai');
 
 describe('The configuration class', () => {
+  let elasticsearchMock, esClientMock;
 
   beforeEach(() => {
     chai.use(sinonChai);
@@ -16,30 +17,30 @@ describe('The configuration class', () => {
       warnOnReplace: false,
       warnOnUnregistered: false
     });
+
+    esClientMock = {
+      ping: (options, callback) => callback(),
+      indices: {},
+      close: () => {}
+    };
+    elasticsearchMock = {
+      Client: () => esClientMock
+    };
   });
 
   afterEach(() => {
     mockery.disable();
   });
 
-  function requireConfiguration() {
-    return require('../../lib/configuration');
-  }
+  const getConfigurationInstance = (options = {}) => {
+    const Configuration = require('../../lib/configuration');
 
-  describe('The getIndexUrl function', () => {
-    it('should return valid ES index URL', () => {
-      let Configuration = requireConfiguration();
-      let name = 'contacts';
-      var options = {host: 'foo', port: '1234'};
-      let c = new Configuration(options);
+    return new Configuration(options);
+  };
 
-      expect(c.getIndexUrl(name)).to.equal(`http://${options.host}:${options.port}/${name}`);
-    });
-  });
-
-  describe('The getIndexConfiguration function', () => {
+  describe('The _getIndexConfiguration function', () => {
     it('should load configuration from local file', (done) => {
-      let name = 'contacts';
+      const name = 'contacts';
 
       mockery.registerMock('fs-promise', {
         readJSON: (file) => {
@@ -48,15 +49,14 @@ describe('The configuration class', () => {
         }
       });
 
-      let Configuration = requireConfiguration();
-      let c = new Configuration();
+      const configuration = getConfigurationInstance();
 
-      c.getIndexConfiguration(name);
+      configuration._getIndexConfiguration(name);
     });
 
     it('should load configuration from local file from options path', (done) => {
-      let name = 'contacts';
-      let options = {path: '/foo/bar/'};
+      const name = 'contacts';
+      const options = { path: '/foo/bar/' };
 
       mockery.registerMock('fs-promise', {
         readJSON: (file) => {
@@ -65,188 +65,618 @@ describe('The configuration class', () => {
         }
       });
 
-      let Configuration = requireConfiguration();
-      let c = new Configuration(options);
+      const configuration = getConfigurationInstance(options);
 
-      c.getIndexConfiguration(name);
+      configuration._getIndexConfiguration(name);
     });
   });
 
-  describe('The createIndex function', () => {
-    it('should call ES with valid data', (done) => {
-      let data = {foo: 'bar'};
-      let name = 'contacts';
+  describe('The _getClient function', () => {
+    it('should reject if failed to connect to elasticsearch', done => {
+      const error = new Error('something wrong');
+
+      esClientMock.ping = sinon.spy((options, callback) => {
+        return callback(error);
+      });
+
+      mockery.registerMock('elasticsearch', elasticsearchMock);
+      const configuration = getConfigurationInstance();
+
+      configuration._getClient()
+        .catch(err => {
+          expect(err).to.deep.equal(error);
+          expect(esClientMock.ping).to.have.been.called;
+          done();
+        });
+    });
+
+    it('should resolve if connect to elasticsearch is successfully', done => {
+      esClientMock.ping = sinon.spy((options, callback) => {
+        return callback();
+      });
+
+      mockery.registerMock('elasticsearch', elasticsearchMock);
+      const configuration = getConfigurationInstance();
+
+      configuration._getClient()
+        .then(esClient => {
+          expect(esClientMock.ping).to.have.been.called;
+          expect(esClient).to.deep.equal(new elasticsearchMock.Client());
+          done();
+        })
+        .catch(err => done(err || 'should resolve'));
+    });
+  });
+
+  describe('The _doesIndexExist function', () => {
+    it('should reject if failed to check the existence of index', done => {
+      const error = new Error('something wrong');
+
+      esClientMock.indices.exists = sinon.spy((options, callback) => {
+        callback(error);
+      });
+
+      mockery.registerMock('elasticsearch', elasticsearchMock);
+      const configuration = getConfigurationInstance();
+
+      configuration._doesIndexExist()
+        .catch(err => {
+          expect(err).to.deep.equal(error);
+          done();
+        });
+    });
+
+    it('should resolve if check the existence of index is successfully', done => {
+      const isExist = false;
+
+      esClientMock.indices.exists = sinon.spy((options, callback) => {
+        callback(null, [isExist, 200]);
+      });
+
+      mockery.registerMock('elasticsearch', elasticsearchMock);
+      const configuration = getConfigurationInstance();
+
+      configuration._doesIndexExist()
+        .then(result => {
+          expect(result).to.equal(isExist);
+          done();
+        });
+    });
+  });
+
+  describe('The _doesAliasExist function', () => {
+    it('should reject if failed to check the existence of alias', done => {
+      const error = new Error('something wrong');
+
+      esClientMock.indices.existsAlias = sinon.spy((options, callback) => {
+        callback(error);
+      });
+
+      mockery.registerMock('elasticsearch', elasticsearchMock);
+      const configuration = getConfigurationInstance();
+
+      configuration._doesAliasExist()
+        .catch(err => {
+          expect(err).to.deep.equal(error);
+          done();
+        });
+    });
+
+    it('should resolve if check the existence of alias is successfully', done => {
+      const isExist = false;
+
+      esClientMock.indices.existsAlias = sinon.spy((options, callback) => {
+        callback(null, [isExist, 200]);
+      });
+
+      mockery.registerMock('elasticsearch', elasticsearchMock);
+      const configuration = getConfigurationInstance();
+
+      configuration._doesAliasExist()
+        .then(result => {
+          expect(result).to.equal(isExist);
+          done();
+        });
+    });
+  });
+
+  describe('The setup function', () => {
+    let data;
+
+    beforeEach(() => {
+      data = { foo: 'bar' };
 
       mockery.registerMock('fs-promise', {
         readJSON: (file) => {
           return q.when(data);
         }
       });
-      mockery.registerMock('request', {
-        post: (options, callback) => {
-          expect(options.url).to.be.defined;
-          expect(options.body).to.deep.equal(data);
-          expect(options.json).to.be.true;
+
+      esClientMock.indices.exists = sinon.spy((options, callback) => {
+        callback(null, [false, 200]);
+      });
+    });
+
+    it('should reject if failed to create index in elasticsearch', done => {
+      const error = new Error('something wrong');
+      const name = 'abc';
+      const type = 'type';
+
+      esClientMock.indices.create = sinon.spy((options, callback) => {
+        callback(error);
+      });
+      esClientMock.indices.putAlias = sinon.spy((options, callback) => {
+        callback();
+      });
+
+      mockery.registerMock('elasticsearch', elasticsearchMock);
+      const configuration = getConfigurationInstance();
+
+      configuration.setup(name, type)
+        .catch(err => {
+          expect(esClientMock.indices.create).to.have.been.calledWith({
+            index: configuration._buildIndexNameByAlias(name),
+            type,
+            body: data
+          });
+          expect(err).to.deep.equal(error);
+
           done();
-        }
-      });
-
-      let Configuration = requireConfiguration();
-      let c = new Configuration();
-
-      c.createIndex(name);
+        });
     });
 
-    it('should reject when ES call fails', (done) => {
-      mockery.registerMock('request', {
-        post: (options, callback) => {
-          callback(new Error('Failed'));
-        }
-      });
-      let Configuration = requireConfiguration();
-      let c = new Configuration();
+    it('should reject if failed to associate alias with index', done => {
+      const error = new Error('something wrong');
+      const name = 'abc';
+      const type = 'type';
 
-      c.createIndex().then(null, () => {
-        done();
+      esClientMock.indices.create = sinon.spy((options, callback) => {
+        callback();
+      });
+      esClientMock.indices.putAlias = sinon.spy((options, callback) => {
+        callback(error);
+      });
+
+      mockery.registerMock('elasticsearch', elasticsearchMock);
+      const configuration = getConfigurationInstance();
+
+      configuration.setup(name, type)
+        .catch(err => {
+          expect(esClientMock.indices.create).to.have.been.calledWith({
+            index: configuration._buildIndexNameByAlias(name),
+            type,
+            body: data
+          });
+          expect(esClientMock.indices.putAlias).to.have.been.calledWith({
+            name,
+            index: configuration._buildIndexNameByAlias(name)
+          });
+          expect(err).to.deep.equal(error);
+
+          done();
+        });
+    });
+
+    it('should resolve if create alias and corresponding index in elasticsearch is successfully', done => {
+      const name = 'abc';
+      const type = 'type';
+
+      esClientMock.indices.create = sinon.spy((options, callback) => {
+        callback();
+      });
+      esClientMock.indices.putAlias = sinon.spy((options, callback) => {
+        callback();
+      });
+      mockery.registerMock('elasticsearch', elasticsearchMock);
+
+      const configuration = getConfigurationInstance();
+
+      configuration.setup(name, type)
+        .then(() => {
+          expect(esClientMock.indices.create).to.have.been.calledWith({
+            index: configuration._buildIndexNameByAlias(name),
+            type,
+            body: data
+          });
+          expect(esClientMock.indices.putAlias).to.have.been.calledWith({
+            name,
+            index: configuration._buildIndexNameByAlias(name)
+          });
+
+          done();
+        }, err => done(err || 'should resolve'));
+    });
+  });
+
+  describe('The createIndex function', () => {
+    let data;
+
+    beforeEach(() => {
+      data = { foo: 'bar' };
+
+      mockery.registerMock('fs-promise', {
+        readJSON: (file) => {
+          return q.when(data);
+        }
       });
     });
 
-    it('should reject when ES does not send back valid HTTP code', (done) => {
-      mockery.registerMock('request', {
-        post: (options, callback) => {
-          callback(null, {statusCode: 500});
-        }
+    it('should resolve if create index in elasticsearch is successfully', done => {
+      const type = 'type';
+      const name = 'abc';
+
+      esClientMock.indices.create = sinon.spy((options, callback) => {
+        callback();
       });
+      esClientMock.indices.exists = sinon.spy((options, callback) => {
+        callback(null, [false, 200]);
+      });
+      mockery.registerMock('elasticsearch', elasticsearchMock);
 
-      let Configuration = requireConfiguration();
-      let c = new Configuration();
+      const configuration = getConfigurationInstance();
 
-      c.createIndex().then(null, () => {
-        done();
+      configuration.createIndex(name, type)
+        .then(() => {
+          expect(esClientMock.indices.create).to.have.been.calledWith({
+            index: name,
+            type,
+            body: data
+          });
+
+          done();
+        }, err => done(err || 'should resolve'));
+    });
+
+    it('should resolve if create index already exists', done => {
+      const type = 'type';
+      const name = 'abc';
+
+      esClientMock.indices.create = sinon.spy((options, callback) => {
+        callback();
+      });
+      esClientMock.indices.exists = sinon.spy((options, callback) => {
+        callback(null, [true, 200]);
+      });
+      mockery.registerMock('elasticsearch', elasticsearchMock);
+
+      const configuration = getConfigurationInstance();
+
+      configuration.createIndex(name, type)
+        .then(() => {
+          expect(esClientMock.indices.create).to.not.have.been.called;
+
+          done();
+        }, err => done(err || 'should resolve'));
+    });
+
+    it('should reject if failed to create index in elasticsearch', done => {
+      const type = 'type';
+      const name = 'abc';
+      const error = new Error('something wrong');
+
+      esClientMock.indices.create = sinon.spy((options, callback) => {
+        callback(error);
+      });
+      esClientMock.indices.exists = sinon.spy((options, callback) => {
+        callback(null, [false, 200]);
+      });
+      mockery.registerMock('elasticsearch', elasticsearchMock);
+      const configuration = getConfigurationInstance();
+
+      configuration.createIndex(name, type)
+        .catch(err => {
+          expect(esClientMock.indices.create).to.have.been.calledWith({
+            index: name,
+            type,
+            body: data
+          });
+          expect(err).to.deep.equal(error);
+
+          done();
+        });
+    });
+  });
+
+  describe('The _associateAliasWithIndex function', () => {
+    let data;
+
+    beforeEach(() => {
+      data = { foo: 'bar' };
+
+      mockery.registerMock('fs-promise', {
+        readJSON: (file) => {
+          return q.when(data);
+        }
       });
     });
 
-    it('should send back ES response on success', (done) => {
-      let body = {foo: 'bar'};
+    it('should reject if failed to associate alias with index', done => {
+      const error = new Error('something wrong');
+      const alias = 'alias';
+      const index = 'index';
 
-      mockery.registerMock('request', {
-        post: (options, callback) => {
-          callback(null, {statusCode: 200}, body);
-        }
+      esClientMock.indices.putAlias = sinon.spy((options, callback) => {
+        callback(error);
       });
 
-      let Configuration = requireConfiguration();
-      let c = new Configuration();
+      mockery.registerMock('elasticsearch', elasticsearchMock);
+      const configuration = getConfigurationInstance();
 
-      c.createIndex().then((result) => {
-        expect(result).to.deep.equal(body);
-        done();
-      }, done);
+      configuration._associateAliasWithIndex(alias, index)
+        .catch(err => {
+          expect(esClientMock.indices.putAlias).to.have.been.calledWith({ name: alias, index });
+          expect(err).to.deep.equal(error);
+
+          done();
+        });
+    });
+
+    it('should resolve if associate alias with index is successfully', done => {
+      const alias = 'alias';
+      const index = 'index';
+
+      esClientMock.indices.putAlias = sinon.spy((options, callback) => {
+        callback();
+      });
+
+      mockery.registerMock('elasticsearch', elasticsearchMock);
+      const configuration = getConfigurationInstance();
+
+      configuration._associateAliasWithIndex(alias, index)
+        .then(() => {
+          expect(esClientMock.indices.putAlias).to.have.been.calledWith({ name: alias, index });
+
+          done();
+        }, err => done(err || 'should resolve'));
     });
   });
 
   describe('The deleteIndex function', () => {
-    it('should reject when ES call fails', (done) => {
-      mockery.registerMock('request', {
-        delete: (options, callback) => {
-          callback(new Error('Failed'));
-        }
-      });
-      const Configuration = requireConfiguration();
-      const configurationInstance = new Configuration();
+    it('should reject if failed to delete index', done => {
+      const error = new Error('something wrong');
+      const name = 'abc';
 
-      configurationInstance.deleteIndex().then(null, () => {
-        done();
+      esClientMock.indices.delete = sinon.spy((options, callback) => {
+        callback(error);
       });
+
+      mockery.registerMock('elasticsearch', elasticsearchMock);
+      const configuration = getConfigurationInstance();
+
+      configuration.deleteIndex(name)
+        .catch(err => {
+          expect(esClientMock.indices.delete).to.have.been.calledWith({ index: name });
+          expect(err).to.deep.equal(error);
+
+          done();
+        });
     });
 
-    it('should reject when ES does not send back valid HTTP code', (done) => {
-      mockery.registerMock('request', {
-        delete: (options, callback) => {
-          callback(null, { statusCode: 500 });
-        }
+    it('should resolve if delete index is successfully', done => {
+      const name = 'abc';
+
+      esClientMock.indices.delete = sinon.spy((options, callback) => {
+        callback();
       });
 
-      const Configuration = requireConfiguration();
-      const configurationInstance = new Configuration();
+      mockery.registerMock('elasticsearch', elasticsearchMock);
+      const configuration = getConfigurationInstance();
 
-      configurationInstance.deleteIndex().then(null, () => {
-        done();
-      });
-    });
+      configuration.deleteIndex(name)
+        .then(() => {
+          expect(esClientMock.indices.delete).to.have.been.calledWith({ index: name });
 
-    it('should send back ES response on success', (done) => {
-      const body = { foo: 'bar' };
-
-      mockery.registerMock('request', {
-        delete: (options, callback) => {
-          callback(null, { statusCode: 200 }, body);
-        }
-      });
-
-      const Configuration = requireConfiguration();
-      const configurationInstance = new Configuration();
-
-      configurationInstance.deleteIndex().then((result) => {
-        expect(result).to.deep.equal(body);
-        done();
-      }, done);
+          done();
+        }, err => done(err, 'should resolve'));
     });
   });
 
   describe('The reindex function', () => {
-    it('should reject when ES call fails', (done) => {
-      mockery.registerMock('request', {
-        post: (options, callback) => {
-          callback(new Error('Failed'));
-        }
-      });
-      const Configuration = requireConfiguration();
-      const configurationInstance = new Configuration();
+    it('should reject if failed to reindex', done => {
+      const error = new Error('something wrong');
+      const source = 'source';
+      const dest = 'dest';
 
-      configurationInstance.reindex().then(null, () => {
-        done();
+      esClientMock.reindex = sinon.spy((options, callback) => {
+        callback(error);
       });
+
+      mockery.registerMock('elasticsearch', elasticsearchMock);
+      const configuration = getConfigurationInstance();
+
+      configuration.reindex(source, dest)
+        .catch(err => {
+          expect(esClientMock.reindex).to.have.been.calledWith({
+            body: {
+              source: { index: source },
+              dest: { index: dest }
+            },
+            refresh: true
+          });
+          expect(err).to.deep.equal(error);
+
+          done();
+        });
     });
 
-    it('should reject when ES does not send back valid HTTP code', (done) => {
-      mockery.registerMock('request', {
-        post: (options, callback) => {
-          callback(null, { statusCode: 500 });
-        }
+    it('should resolve if reindex is successfully', (done) => {
+      const source = 'source';
+      const dest = 'dest';
+
+      esClientMock.reindex = sinon.spy((options, callback) => {
+        callback();
       });
+      mockery.registerMock('elasticsearch', elasticsearchMock);
+      const configuration = getConfigurationInstance();
 
-      const Configuration = requireConfiguration();
-      const configurationInstance = new Configuration();
-
-      configurationInstance.reindex().then(null, () => {
-        done();
-      });
-    });
-
-    it('should send back ES response on success', (done) => {
-      const body = { foo: 'bar' };
-      const source = 'source index';
-      const dest = 'destination index';
-
-      mockery.registerMock('request', {
-        post: (options, callback) => {
-          expect(options.body).to.deep.equal({
-            source: { index: source },
-            dest: { index: dest }
+      configuration.reindex(source, dest)
+        .then(() => {
+          expect(esClientMock.reindex).to.have.been.calledWith({
+            body: {
+              source: { index: source },
+              dest: { index: dest }
+            },
+            refresh: true
           });
 
-          callback(null, { statusCode: 200 }, body);
-        }
+          done();
+        }, err => done(err || 'should resolve'));
+    });
+  });
+
+  describe('The _convertIndexToAlias function', () => {
+    it('should resolve if convert index to alias is successfully', done => {
+      const index = 'abc';
+      const type = 'type';
+      const configuration = getConfigurationInstance();
+
+      configuration.createIndex = sinon.stub().returns(q.when());
+      configuration.reindex = sinon.stub().returns(q.when());
+      configuration.deleteIndex = sinon.stub().returns(q.when());
+      configuration._associateAliasWithIndex = sinon.stub().returns(q.when());
+
+      configuration._convertIndexToAlias(index, type)
+        .then(() => {
+          expect(configuration.createIndex).to.have.been.calledWith(configuration._buildIndexNameByAlias(index), type);
+          expect(configuration.reindex).to.have.been.calledWith(index, configuration._buildIndexNameByAlias(index));
+          expect(configuration.deleteIndex).to.have.been.calledWith(index);
+          expect(configuration._associateAliasWithIndex).to.have.been.calledWith(index, configuration._buildIndexNameByAlias(index));
+
+          done();
+        }, err => done(err || 'should resolve'));
+    });
+  });
+
+  describe('The ensureIndexIsConfiguredProperly function', () => {
+    let configuration;
+
+    beforeEach(() => {
+      configuration = getConfigurationInstance();
+
+      configuration._doesIndexExist = sinon.stub().returns(q.when());
+      configuration._convertIndexToAlias = sinon.stub().returns(q.when());
+      esClientMock.indices.create = sinon.spy((options, callback) => {
+        callback();
+      });
+      configuration._associateAliasWithIndex = sinon.stub().returns(q.when());
+    });
+
+    describe('In case alias already exist', () => {
+      it('should associate alias with index if index already exist', done => {
+        const name = 'abc';
+        const type = 'type';
+
+        configuration._doesAliasExist = sinon.stub().returns(q.when(true));
+        configuration._doesIndexExist = sinon.stub().returns(q.when(true));
+
+        configuration.ensureIndexIsConfiguredProperly(name, type)
+          .then(() => {
+            expect(configuration._doesAliasExist).to.have.been.calledWith(name);
+            expect(configuration._doesIndexExist).to.have.been.calledWith(configuration._buildIndexNameByAlias(name));
+            expect(configuration._convertIndexToAlias).to.not.have.called;
+            expect(esClientMock.indices.create).to.not.have.called;
+            expect(configuration._associateAliasWithIndex).to.have.been.calledWith(name, configuration._buildIndexNameByAlias(name));
+
+            done();
+          }, err => done(err || 'should resolve'));
       });
 
-      const Configuration = requireConfiguration();
-      const configurationInstance = new Configuration();
+      it('should create index and associate alias and index if index does not exist', done => {
+        const name = 'abc';
+        const type = 'type';
+        const data = { foo: 'bar' };
 
-      configurationInstance.reindex(source, dest).then((result) => {
-        expect(result).to.deep.equal(body);
-        done();
-      }, done);
+        mockery.registerMock('fs-promise', {
+          readJSON: (file) => {
+            return q.when(data);
+          }
+        });
+
+        configuration._doesAliasExist = sinon.stub().returns(q.when(true));
+        configuration._doesIndexExist = sinon.stub().returns(q.when(false));
+
+        configuration.ensureIndexIsConfiguredProperly(name, type)
+          .then(() => {
+            expect(configuration._doesAliasExist).to.have.been.calledWith(name);
+            expect(configuration._doesIndexExist).to.have.been.calledWith(configuration._buildIndexNameByAlias(name));
+            expect(configuration._convertIndexToAlias).to.not.have.called;
+            expect(esClientMock.indices.create).to.have.been.calledWith({
+              index: configuration._buildIndexNameByAlias(name),
+              type,
+              body: data
+            });
+            expect(configuration._associateAliasWithIndex).to.have.been.calledWith(name, configuration._buildIndexNameByAlias(name));
+
+            done();
+          }, err => done(err || 'should resolve'));
+      });
+    });
+
+    describe('In case alias does not exist', () => {
+      it('should convert index to alias if the alias name have been taken by index', done => {
+        const name = 'abc';
+        const type = 'type';
+
+        configuration._doesAliasExist = sinon.stub().returns(q.when(false));
+        configuration._doesIndexExist = sinon.stub().returns(q.when(true));
+
+        configuration.ensureIndexIsConfiguredProperly(name, type)
+          .then(() => {
+            expect(configuration._doesAliasExist).to.have.been.calledWith(name);
+            expect(configuration._doesIndexExist).to.have.been.calledWith(name);
+            expect(configuration._convertIndexToAlias).to.have.been.calledWith(name, type);
+
+            done();
+          }, err => done(err || 'should resolve'));
+      });
+    });
+  });
+
+  describe('The _switchIndexForAlias function', () => {
+    let alias, sourceIndex, destIndex, actions;
+
+    beforeEach(() => {
+      alias = 'abc';
+      sourceIndex = 'source';
+      destIndex = 'dest';
+      actions = [
+        { add: { index: destIndex, alias } },
+        { remove: { index: sourceIndex, alias } }
+      ];
+    });
+
+    it('should resolve if create switch index for alias is successfully', done => {
+      esClientMock.indices.updateAliases = sinon.spy((options, callback) => {
+        callback();
+      });
+      mockery.registerMock('elasticsearch', elasticsearchMock);
+
+      const configuration = getConfigurationInstance();
+
+      configuration._switchIndexForAlias(alias, sourceIndex, destIndex)
+        .then(() => {
+          expect(esClientMock.indices.updateAliases).to.have.been.calledWith({ body: { actions } });
+
+          done();
+        }, err => done(err || 'should resolve'));
+    });
+
+    it('should reject if failed to switch index for alias', done => {
+      const error = new Error('something wrong');
+
+      esClientMock.indices.updateAliases = sinon.spy((options, callback) => {
+        callback(error);
+      });
+      mockery.registerMock('elasticsearch', elasticsearchMock);
+      const configuration = getConfigurationInstance();
+
+      configuration._switchIndexForAlias(alias, sourceIndex, destIndex)
+        .catch(err => {
+          expect(esClientMock.indices.updateAliases).to.have.been.calledWith({ body: { actions } });
+          expect(err).to.deep.equal(error);
+
+          done();
+        });
     });
   });
 
@@ -261,100 +691,105 @@ describe('The configuration class', () => {
       };
     });
 
-    it('should reject when ES call fails', (done) => {
-      mockery.registerMock('request', {
-        put: (options, callback) => {
-          callback(new Error('Failed'));
-        }
-      });
-      const Configuration = requireConfiguration();
-      const configurationInstance = new Configuration();
+    it('should reject if failed to index document', done => {
+      const error = new Error('something wrong');
 
-      configurationInstance.index(indexOptions).then(null, () => {
-        done();
+      esClientMock.index = sinon.spy((options, callback) => {
+        callback(error);
       });
+
+      mockery.registerMock('elasticsearch', elasticsearchMock);
+      const configuration = getConfigurationInstance();
+
+      configuration.index(indexOptions)
+        .catch(err => {
+          expect(esClientMock.index).to.have.been.calledWith({
+            index: indexOptions.name,
+            type: indexOptions.type,
+            refresh: true,
+            id: indexOptions.document.id,
+            body: indexOptions.document
+          });
+          expect(err).to.deep.equal(error);
+
+          done();
+        });
     });
 
-    it('should reject when ES does not send back valid HTTP code', (done) => {
-      mockery.registerMock('request', {
-        put: (options, callback) => {
-          callback(null, { statusCode: 500 });
-        }
+    it('should resolve if index document successfully', done => {
+      esClientMock.index = sinon.spy((options, callback) => {
+        callback();
       });
 
-      const Configuration = requireConfiguration();
-      const configurationInstance = new Configuration();
+      mockery.registerMock('elasticsearch', elasticsearchMock);
+      const configuration = getConfigurationInstance();
 
-      configurationInstance.index(indexOptions).then(null, () => {
-        done();
-      });
-    });
+      configuration.index(indexOptions)
+        .then(() => {
+          expect(esClientMock.index).to.have.been.calledWith({
+            index: indexOptions.name,
+            type: indexOptions.type,
+            refresh: true,
+            id: indexOptions.document.id,
+            body: indexOptions.document
+          });
 
-    it('should send back ES response on success', (done) => {
-      const body = { foo: 'bar' };
-      const esOptions = { url: 'localhost:1234' };
-
-      mockery.registerMock('request', {
-        put: (options, callback) => {
-          expect(options.url).to.equal(`http://${esOptions.url}/${indexOptions.name}/${indexOptions.type}/${indexOptions.document.id}?refresh=true`);
-
-          callback(null, { statusCode: 201 }, body);
-        }
-      });
-
-      const Configuration = requireConfiguration();
-      const configurationInstance = new Configuration(esOptions);
-
-      configurationInstance.index(indexOptions).then((result) => {
-        expect(result).to.deep.equal(body);
-        done();
-      }, done);
+          done();
+        }, err => done(err || 'should resolve'));
     });
 
     it('should denormalize document if denormalize function is provided', (done) => {
-      const body = { foo: 'bar' };
-
       indexOptions.denormalize = sinon.spy(function(data) {
         return data;
       });
 
-      mockery.registerMock('request', {
-        put: (options, callback) => {
-          callback(null, { statusCode: 201 }, body);
-        }
+      esClientMock.index = sinon.spy((options, callback) => {
+        callback();
       });
 
-      const Configuration = requireConfiguration();
-      const configurationInstance = new Configuration();
+      mockery.registerMock('elasticsearch', elasticsearchMock);
+      const configuration = getConfigurationInstance();
 
-      configurationInstance.index(indexOptions).then((result) => {
-        expect(indexOptions.denormalize).to.have.been.calledWith(indexOptions.document);
-        expect(result).to.deep.equal(body);
-        done();
-      }, done);
+      configuration.index(indexOptions)
+        .then(() => {
+          expect(indexOptions.denormalize).to.have.been.calledWith(indexOptions.document);
+          expect(esClientMock.index).to.have.been.calledWith({
+            index: indexOptions.name,
+            type: indexOptions.type,
+            refresh: true,
+            id: indexOptions.document.id,
+            body: indexOptions.document
+          });
+
+          done();
+        }, err => done(err || 'should resolve'));
     });
 
     it('should use getId funtion if it is provided', (done) => {
-      const body = { foo: 'bar' };
-
       indexOptions.getId = sinon.spy(function(data) {
         return data.id;
       });
 
-      mockery.registerMock('request', {
-        put: (options, callback) => {
-          callback(null, { statusCode: 201 }, body);
-        }
+      esClientMock.index = sinon.spy((options, callback) => {
+        callback();
       });
 
-      const Configuration = requireConfiguration();
-      const configurationInstance = new Configuration();
+      mockery.registerMock('elasticsearch', elasticsearchMock);
+      const configuration = getConfigurationInstance();
 
-      configurationInstance.index(indexOptions).then((result) => {
-        expect(indexOptions.getId).to.have.been.calledWith(indexOptions.document);
-        expect(result).to.deep.equal(body);
-        done();
-      }, done);
+      configuration.index(indexOptions)
+        .then(() => {
+          expect(indexOptions.getId).to.have.been.calledWith(indexOptions.document);
+          expect(esClientMock.index).to.have.been.calledWith({
+            index: indexOptions.name,
+            type: indexOptions.type,
+            refresh: true,
+            id: indexOptions.document.id,
+            body: indexOptions.document
+          });
+
+          done();
+        }, err => done(err || 'should resolve'));
     });
   });
 
@@ -362,38 +797,43 @@ describe('The configuration class', () => {
     it('should call index function multiple times to index multiple documents', function(done) {
       const documents = [{ doc1: 'doc1' }, { doc2: 'doc2 '}];
       const options = {};
-      const Configuration = requireConfiguration();
-      const configurationInstance = new Configuration();
+      const configuration = getConfigurationInstance();
 
-      configurationInstance.index = sinon.stub().returns(q.when());
+      configuration.index = sinon.stub().returns(q.when());
 
-      configurationInstance.indexDocs(documents, options).then(() => {
-        expect(configurationInstance.index).to.have.been.calledTwice;
+      configuration.indexDocs(documents, options).then(() => {
+        expect(configuration.index).to.have.been.calledTwice;
         done();
       }, done);
     });
   });
 
-  describe('The reconfig function', () => {
-    it('should resolve if success to reindex configuration', function(done) {
-      const Configuration = requireConfiguration();
-      const configurationInstance = new Configuration();
+  describe('The reconfigure function', () => {
+    it('should resolve if success to reindex configuration', done => {
+      const name = 'abc';
+      const type = 'type';
+      const configuration = getConfigurationInstance();
 
-      configurationInstance.createIndex = sinon.stub().returns(q.when());
-      configurationInstance.reindex = sinon.stub().returns(q.when());
-      configurationInstance.deleteIndex = sinon.stub().returns(q.when());
+      configuration.ensureIndexIsConfiguredProperly = sinon.stub().returns(q.when());
+      configuration.createIndex = sinon.stub().returns(q.when());
+      configuration.reindex = sinon.stub().returns(q.when());
+      configuration.deleteIndex = sinon.stub().returns(q.when());
+      configuration._switchIndexForAlias = sinon.stub().returns(q.when());
 
-      configurationInstance.reconfig().then(() => {
-        expect(configurationInstance.createIndex).to.have.been.calledTwice;
-        expect(configurationInstance.reindex).to.have.been.calledTwice;
-        expect(configurationInstance.deleteIndex).to.have.been.calledTwice;
+      configuration.reconfigure(name, type).then(() => {
+        expect(configuration.ensureIndexIsConfiguredProperly).to.have.been.calledWith(name, type);
+        expect(configuration.createIndex).to.have.been.calledTwice;
+        expect(configuration.reindex).to.have.been.calledTwice;
+        expect(configuration.deleteIndex).to.have.been.calledTwice;
+        expect(configuration._switchIndexForAlias).to.have.been.calledTwice;
+
         done();
-      }, done);
+      }, err => done(err || 'should resolve'));
     });
   });
 
   describe('The reindexAll function', () => {
-    it('should resolve if success to reindex configuration and data', function(done) {
+    it('should resolve if success to reindex configuration and data', done => {
       const doc1 = { id: 'doc1' };
       const doc2 = { id: 'doc2' };
       const next = sinon.stub();
@@ -406,23 +846,25 @@ describe('The configuration class', () => {
         name: 'abc',
         type: 'abc'
       };
+      const configuration = getConfigurationInstance();
+      const indexName = configuration._buildIndexNameByAlias(options.name);
 
-      const Configuration = requireConfiguration();
-      const configurationInstance = new Configuration();
+      configuration.ensureIndexIsConfiguredProperly = sinon.stub().returns(q.when());
+      configuration.createIndex = sinon.stub().returns(q.when());
+      configuration.reindex = sinon.stub().returns(q.when());
+      configuration.deleteIndex = sinon.stub().returns(q.when());
+      configuration.index = sinon.stub().returns(q.when());
+      configuration._switchIndexForAlias = sinon.stub().returns(q.when());
 
-      configurationInstance.createIndex = sinon.stub().returns(q.when());
-      configurationInstance.reindex = sinon.stub().returns(q.when());
-      configurationInstance.deleteIndex = sinon.stub().returns(q.when());
-      configurationInstance.index = sinon.stub().returns(q.when());
+      configuration.reindexAll(options).then(() => {
+        expect(configuration.ensureIndexIsConfiguredProperly).to.have.been.calledWith(options.name, options.type);
+        expect(configuration.createIndex).to.have.been.calledTwice;
+        expect(configuration._switchIndexForAlias).to.have.been.calledTwice;
+        expect(configuration.deleteIndex).to.have.been.calledTwice;
+        expect(configuration.reindex).to.have.been.calledWith(`tmp.${indexName}`, indexName);
 
-      configurationInstance.reindexAll(options).then(() => {
-        expect(configurationInstance.createIndex).to.have.been.calledTwice;
-        expect(configurationInstance.reindex).to.have.been.calledOnce;
-        expect(configurationInstance.reindex).to.have.been.calledWith(`tmp_${options.name}`, options.name);
-        expect(configurationInstance.deleteIndex).to.have.been.calledTwice;
-        expect(configurationInstance.index).to.have.been.calledTwice;
         done();
-      }, done);
+      }, err => done(err || 'should resolve'));
     });
   });
 });

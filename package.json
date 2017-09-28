@@ -50,9 +50,9 @@
   "license": "MIT",
   "dependencies": {
     "commander": "2.9.0",
+    "elasticsearch": "11.0.1",
     "fs-extra": "^0.26.5",
     "fs-promise": "^0.4.1",
-    "q": "1.4.1",
-    "request": "^2.69.0"
+    "q": "1.4.1"
   }
 }
