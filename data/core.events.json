@@ -16,7 +16,7 @@
         },
         "payload": {
           "type": "object",
-          "dynamic": true
+          "enabled": false
         },
         "context": {
           "type": "object",
