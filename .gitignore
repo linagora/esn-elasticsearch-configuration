@@ -5,3 +5,4 @@ results.txt
 .idea
 *.log
 jshint.xml
+package-lock.json
