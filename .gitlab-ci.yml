@@ -1,14 +1,29 @@
-before_script:
-  - . ~/.nvm/nvm.sh && nvm use 8
-
 stages:
-  - test
+  - linters
+  - tests
 
-test:
-  stage: test
+.test-template: &test-template
+  image: node:8
   tags:
-    - shell
-    - online.net
+    - docker
+  before_script:
+    - npm install -g grunt-cli
+    - npm i
+
+linters:
+  <<: *test-template
+  stage: linters
   script:
-   - npm i
-   - grunt
+    - grunt -v linters
+  except:
+    variables:
+      - $SKIP_LINTERS
+
+tests:
+  <<: *test-template
+  stage: tests
+  script:
+    - grunt -v test
+  except:
+    variables:
+      - $SKIP_TESTS
