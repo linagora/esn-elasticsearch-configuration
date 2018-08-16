@@ -40,4 +40,4 @@ grunt release:0.3.0
 
 ## License
 
-MIT
+AGPL-3.0
