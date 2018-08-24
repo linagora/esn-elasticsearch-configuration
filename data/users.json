@@ -70,6 +70,9 @@
                      "search_analyzer": "whitespace_analyzer"
                   }
                }
+            },
+            "states": {
+              "type": "nested"
             }
          }
       }
