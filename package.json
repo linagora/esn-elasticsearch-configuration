@@ -41,7 +41,8 @@
     "sinon-chai": "2.8.0"
   },
   "scripts": {
-    "test": "grunt test"
+    "test": "grunt test",
+    "prepublishOnly": "npm i && grunt package"
   },
   "bin": {
     "esn-elasticsearch-configure": "./dist/bin/index.js"
