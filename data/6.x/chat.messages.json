@@ -5,17 +5,13 @@
         "nGram_filter": {
           "type": "nGram",
           "min_gram": 1,
-          "max_gram": 36,
+          "max_gram": 20,
           "token_chars": [
             "letter",
             "digit",
             "punctuation",
             "symbol"
           ]
-        },
-        "truncate_filter": {
-          "type": "truncate",
-          "length": 36
         }
       },
       "analyzer": {
@@ -23,7 +19,6 @@
           "type": "custom",
           "tokenizer": "whitespace",
           "filter": [
-            "truncate_filter",
             "lowercase",
             "asciifolding",
             "nGram_filter"
@@ -33,7 +28,6 @@
           "type": "custom",
           "tokenizer": "whitespace",
           "filter": [
-            "truncate_filter",
             "lowercase",
             "asciifolding"
           ]
@@ -42,15 +36,10 @@
     }
   },
   "mappings": {
-    "resources" : {
-      "properties" : {
-        "name" : {
-          "type": "string",
-          "analyzer": "nGram_analyzer",
-          "search_analyzer": "whitespace_analyzer"
-        },
-        "description" : {
-          "type": "string",
+    "chat.messages": {
+      "properties": {
+        "text": {
+          "type": "text",
           "analyzer": "nGram_analyzer",
           "search_analyzer": "whitespace_analyzer"
         }
