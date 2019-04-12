@@ -9,6 +9,7 @@ const sinonChai = require('sinon-chai');
 
 describe('The configuration class', () => {
   let elasticsearchMock, esClientMock;
+  let version = '2.3.2';
 
   beforeEach(() => {
     chai.use(sinonChai);
@@ -21,7 +22,8 @@ describe('The configuration class', () => {
     esClientMock = {
       ping: (options, callback) => callback(),
       indices: {},
-      close: () => {}
+      close: () => {},
+      info: callback => callback(null, [{ version: { number: version } }, 200])
     };
     elasticsearchMock = {
       Client: () => esClientMock
@@ -42,32 +44,36 @@ describe('The configuration class', () => {
     it('should load configuration from local file', (done) => {
       const name = 'contacts';
 
+      mockery.registerMock('elasticsearch', elasticsearchMock);
       mockery.registerMock('fs-promise', {
         readJSON: (file) => {
-          expect(file.indexOf('data/' + name + '.json') > 0).to.be.true;
-          done();
+          expect(file.indexOf(name + '.json') > 0).to.be.true;
+
+          return q.when().then(done);
         }
       });
 
       const configuration = getConfigurationInstance();
 
-      configuration._getIndexConfiguration(name);
+      configuration._getIndexConfiguration(name).catch(done);
     });
 
     it('should load configuration from local file from options path', (done) => {
       const name = 'contacts';
       const options = { path: '/foo/bar/' };
 
+      mockery.registerMock('elasticsearch', elasticsearchMock);
       mockery.registerMock('fs-promise', {
         readJSON: (file) => {
           expect(file.indexOf(options.path + name + '.json') === 0).to.be.true;
-          done();
+
+          return q.when().then(done);
         }
       });
 
       const configuration = getConfigurationInstance(options);
 
-      configuration._getIndexConfiguration(name);
+      configuration._getIndexConfiguration(name).catch(done);
     });
   });
 
@@ -213,16 +219,16 @@ describe('The configuration class', () => {
       const configuration = getConfigurationInstance();
 
       configuration.setup(name, type)
-        .catch(err => {
+        .then(() => done(new Error('should not resolve')), err => {
           expect(esClientMock.indices.create).to.have.been.calledWith({
             index: configuration._buildIndexNameByAlias(name),
-            type,
             body: data
           });
           expect(err).to.deep.equal(error);
 
           done();
-        });
+        })
+        .catch(done);
     });
 
     it('should reject if failed to associate alias with index', done => {
@@ -241,10 +247,9 @@ describe('The configuration class', () => {
       const configuration = getConfigurationInstance();
 
       configuration.setup(name, type)
-        .catch(err => {
+        .then(() => done(new Error('should not resolve')), err => {
           expect(esClientMock.indices.create).to.have.been.calledWith({
             index: configuration._buildIndexNameByAlias(name),
-            type,
             body: data
           });
           expect(esClientMock.indices.putAlias).to.have.been.calledWith({
@@ -254,7 +259,8 @@ describe('The configuration class', () => {
           expect(err).to.deep.equal(error);
 
           done();
-        });
+        })
+        .catch(done);
     });
 
     it('should resolve if create alias and corresponding index in elasticsearch is successfully', done => {
@@ -275,7 +281,6 @@ describe('The configuration class', () => {
         .then(() => {
           expect(esClientMock.indices.create).to.have.been.calledWith({
             index: configuration._buildIndexNameByAlias(name),
-            type,
             body: data
           });
           expect(esClientMock.indices.putAlias).to.have.been.calledWith({
@@ -284,7 +289,7 @@ describe('The configuration class', () => {
           });
 
           done();
-        }, err => done(err || 'should resolve'));
+        }).catch(done);
     });
   });
 
@@ -319,12 +324,11 @@ describe('The configuration class', () => {
         .then(() => {
           expect(esClientMock.indices.create).to.have.been.calledWith({
             index: name,
-            type,
             body: data
           });
 
           done();
-        }, err => done(err || 'should resolve'));
+        }).catch(done);
     });
 
     it('should resolve if create index already exists', done => {
@@ -367,10 +371,41 @@ describe('The configuration class', () => {
         .catch(err => {
           expect(esClientMock.indices.create).to.have.been.calledWith({
             index: name,
-            type,
             body: data
           });
           expect(err).to.deep.equal(error);
+
+          done();
+        });
+    });
+
+    it('should reject if failed to get index configuration', done => {
+      const type = 'type';
+      const name = 'abc';
+
+      mockery.registerMock('fs-promise', {
+        readJSON: () => {
+          return q.reject({
+            code: 'ENOENT'
+          });
+        }
+      });
+
+      esClientMock.indices.create = sinon.spy((options, callback) => {
+        callback(error);
+      });
+
+      esClientMock.indices.exists = sinon.spy((options, callback) => {
+        callback(null, [false, 200]);
+      });
+
+      mockery.registerMock('elasticsearch', elasticsearchMock);
+      const configuration = getConfigurationInstance();
+
+      configuration.createIndex(name, type)
+        .catch(err => {
+          expect(esClientMock.indices.create).to.not.have.been.called;
+          expect(err.message).to.equal(`No "${type}" mapping configuration found for Elasticsearch version ${version.split('')[0]}`);
 
           done();
         });
@@ -403,12 +438,13 @@ describe('The configuration class', () => {
       const configuration = getConfigurationInstance();
 
       configuration._associateAliasWithIndex(alias, index)
-        .catch(err => {
+        .then(() => done(new Error('should not resolved')), err => {
           expect(esClientMock.indices.putAlias).to.have.been.calledWith({ name: alias, index });
           expect(err).to.deep.equal(error);
 
           done();
-        });
+        })
+        .catch(done);
     });
 
     it('should resolve if associate alias with index is successfully', done => {
@@ -432,10 +468,31 @@ describe('The configuration class', () => {
   });
 
   describe('The deleteIndex function', () => {
+    it('should not delete if index does not exist', done => {
+      const name = 'abc';
+
+      esClientMock.indices.exists = sinon.spy((options, callback) => callback(null, [false, 200]));
+      esClientMock.indices.delete = sinon.spy();
+
+      mockery.registerMock('elasticsearch', elasticsearchMock);
+      const configuration = getConfigurationInstance();
+
+      configuration.deleteIndex(name)
+        .then(err => {
+          expect(esClientMock.indices.exists).to.have.been.calledWith({ index: name });
+          expect(esClientMock.indices.delete).to.not.have.been.called;
+          expect(err).to.not.exists;
+
+          done();
+        })
+        .catch(done);
+    });
+
     it('should reject if failed to delete index', done => {
       const error = new Error('something wrong');
       const name = 'abc';
 
+      esClientMock.indices.exists = sinon.spy((options, callback) => callback(null, [true, 200]));
       esClientMock.indices.delete = sinon.spy((options, callback) => {
         callback(error);
       });
@@ -455,6 +512,7 @@ describe('The configuration class', () => {
     it('should resolve if delete index is successfully', done => {
       const name = 'abc';
 
+      esClientMock.indices.exists = sinon.spy((options, callback) => callback(null, [true, 200]));
       esClientMock.indices.delete = sinon.spy((options, callback) => {
         callback();
       });
@@ -602,13 +660,12 @@ describe('The configuration class', () => {
             expect(configuration._convertIndexToAlias).to.not.have.called;
             expect(esClientMock.indices.create).to.have.been.calledWith({
               index: configuration._buildIndexNameByAlias(name),
-              type,
               body: data
             });
             expect(configuration._associateAliasWithIndex).to.have.been.calledWith(name, configuration._buildIndexNameByAlias(name));
 
             done();
-          }, err => done(err || 'should resolve'));
+          }).catch(done);
       });
     });
 
