@@ -41,9 +41,8 @@ module.exports = function(grunt) {
         files: [
           {
             expand: true,
-            src: ['<%= project.data %>/*.json'],
-            dest: '<%= project.dist %>/',
-            filter: 'isFile'
+            src: ['<%= project.data %>/**'],
+            dest: '<%= project.dist %>/'
           }
         ],
       }

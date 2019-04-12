@@ -392,7 +392,7 @@ describe('The configuration class', () => {
       });
 
       esClientMock.indices.create = sinon.spy((options, callback) => {
-        callback(error);
+        callback();
       });
 
       esClientMock.indices.exists = sinon.spy((options, callback) => {
