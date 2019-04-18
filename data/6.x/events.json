@@ -37,6 +37,14 @@
             "lowercase",
             "asciifolding"
           ]
+        },
+        "email_analyzer": {
+          "type": "custom",
+          "tokenizer": "uax_url_email",
+          "filter": [
+            "lowercase",
+            "stop"
+          ]
         }
       }
     }
@@ -89,7 +97,15 @@
         },
         "organizer" : {
           "properties": {
-            "email": { "type": "keyword" },
+            "email": { 
+              "type": "keyword",
+              "fields": {
+                "full": {
+                  "type": "text",
+                  "analyzer": "email_analyzer"
+                }
+              }
+            },
             "cn": {
               "type": "text",
               "analyzer": "nGram_analyzer",
@@ -102,7 +118,13 @@
             "email": {
               "type": "text",
               "analyzer": "nGram_analyzer",
-              "search_analyzer": "whitespace_analyzer"
+              "search_analyzer": "whitespace_analyzer",
+              "fields": {
+                "full": {
+                  "type": "text",
+                  "analyzer": "email_analyzer"
+                }
+              }
             },
             "cn": {
               "type": "text",
