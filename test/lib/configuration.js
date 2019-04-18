@@ -38,6 +38,16 @@ describe('The configuration class', () => {
     return new Configuration(options);
   };
 
+  it('should use url option for elasticsearch url if url option is provided', () => {
+    const config = getConfigurationInstance({
+      url: 'http://elasticsearch:9200',
+      host: 'localhost',
+      port: 5455
+    });
+
+    expect(config.url).to.equal('http://elasticsearch:9200');
+  });
+
   describe('The _getIndexConfiguration function', () => {
     it('should load configuration from local file', (done) => {
       const name = 'contacts';
