@@ -1,0 +1,31 @@
+{
+  "mappings": {
+    "core.events" : {
+      "properties" : {
+        "uuid" : {
+          "type": "text"
+        },
+        "name" : {
+          "type": "text"
+        },
+        "objectType": {
+          "type": "text"
+        },
+        "id" : {
+          "type": "text"
+        },
+        "payload": {
+          "type": "object",
+          "enabled": false
+        },
+        "context": {
+          "type": "object",
+          "dynamic": true
+        },
+        "timestamp": {
+          "type": "date"
+        }
+      }
+    }
+  }
+}

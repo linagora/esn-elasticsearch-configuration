@@ -42,15 +42,20 @@
     }
   },
   "mappings": {
-    "groups" : {
+    "resources" : {
       "properties" : {
         "name" : {
-          "type": "string",
+          "type": "text",
           "analyzer": "nGram_analyzer",
-          "search_analyzer": "whitespace_analyzer"
+          "search_analyzer": "whitespace_analyzer",
+          "fields": {
+            "sort": {
+              "type": "keyword"
+            }
+          }
         },
-        "email" : {
-          "type": "string",
+        "description" : {
+          "type": "text",
           "analyzer": "nGram_analyzer",
           "search_analyzer": "whitespace_analyzer"
         }
