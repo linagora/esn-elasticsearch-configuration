@@ -1,6 +1,6 @@
 {
   "name": "esn-elasticsearch-configuration",
-  "version": "1.4.7-dev",
+  "version": "0.10.0",
   "description": "",
   "homepage": "http://open-paas.org",
   "author": "Linagora folks <dev@linagora.com>",
