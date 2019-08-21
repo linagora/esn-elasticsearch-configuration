@@ -8,9 +8,14 @@
   "requirePaddingNewLinesBeforeLineComments": null,
   "requireCamelCaseOrUpperCaseIdentifiers": null,
   "requirePaddingNewLinesAfterUseStrict": true,
+  "requireSpacesInsideObjectBrackets": null,
+  "requireSpacesInsideImportedObjectBraces": null,
+  "requireSpacesInAnonymousFunctionExpression": null,
+  "requireShorthandArrowFunctions": null,
   "disallowMultipleVarDecl": null,
   "disallowTrailingWhitespace": true,
   "validateIndentation": 2,
-  "safeContextKeyword": ["self"]
+  "safeContextKeyword": ["self"],
+  "maximumLineLength": null
 }
 
