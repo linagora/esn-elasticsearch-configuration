@@ -119,11 +119,6 @@ module.exports = function(grunt) {
           ]
         }]
       }
-    },
-    release: {
-      options: {
-        tagName: 'v<%= version %>'
-      }
     }
   });
 

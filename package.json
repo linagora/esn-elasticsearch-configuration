@@ -33,7 +33,6 @@
     "grunt-jscs": "3.0.1",
     "grunt-lint-pattern": "0.1.4",
     "grunt-mocha-test": "0.12.7",
-    "grunt-release": "0.14.0",
     "load-grunt-tasks": "5.1.0",
     "mocha": "5.2.0",
     "mockery": "1.4.0",
@@ -42,7 +41,7 @@
   },
   "scripts": {
     "test": "grunt test",
-    "prepublishOnly": "npm i && grunt package"
+    "dist": "grunt package"
   },
   "bin": {
     "esn-elasticsearch-configure": "./dist/bin/index.js"
