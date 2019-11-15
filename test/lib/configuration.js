@@ -47,7 +47,26 @@ describe('The configuration class', () => {
       port: 5455
     });
 
-    expect(config.url).to.equal('http://elasticsearch:9200');
+    expect(config.hosts).to.deep.equal(['http://elasticsearch:9200']);
+  });
+
+  it('should use hosts option for elasticsearch hosts if hosts option is provided', () => {
+    const config = getConfigurationInstance({
+      hosts: ['http://es1:9200', 'http://es2:9200'],
+      host: 'localhost',
+      port: 5455
+    });
+
+    expect(config.hosts).to.deep.equal(['http://es1:9200', 'http://es2:9200']);
+  });
+
+  it('should use host/port option for elasticsearch hosts if host/port option is provided', () => {
+    const config = getConfigurationInstance({
+      host: 'es1',
+      port: 5455
+    });
+
+    expect(config.hosts).to.deep.equal(['http://es1:5455']);
   });
 
   describe('The _getIndexConfiguration function', () => {
