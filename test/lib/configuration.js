@@ -26,8 +26,9 @@ describe('The configuration class', () => {
       info: callback => callback(null, [{ version: { number: version } }, 200])
     };
     elasticsearchMock = {
-      Client: () => esClientMock
+      Client: sinon.stub().returns(esClientMock)
     };
+    mockery.registerMock('elasticsearch', elasticsearchMock);
   });
 
   afterEach(() => {
@@ -48,6 +49,9 @@ describe('The configuration class', () => {
     });
 
     expect(config.hosts).to.deep.equal(['http://elasticsearch:9200']);
+
+    config._getClient();
+    expect(elasticsearchMock.Client).to.have.been.calledWith({ hosts: ['http://elasticsearch:9200']});
   });
 
   it('should use hosts option for elasticsearch hosts if hosts option is provided', () => {
@@ -58,6 +62,8 @@ describe('The configuration class', () => {
     });
 
     expect(config.hosts).to.deep.equal(['http://es1:9200', 'http://es2:9200']);
+    config._getClient();
+    expect(elasticsearchMock.Client).to.have.been.calledWith({ hosts: ['http://es1:9200', 'http://es2:9200']});
   });
 
   it('should use host/port option for elasticsearch hosts if host/port option is provided', () => {
@@ -67,6 +73,20 @@ describe('The configuration class', () => {
     });
 
     expect(config.hosts).to.deep.equal(['http://es1:5455']);
+    config._getClient();
+    expect(elasticsearchMock.Client).to.have.been.calledWith({ hosts: ['http://es1:5455']});
+  });
+
+  it('should use httpAuth option for elasticsearch hosts if httpAuth option is provided', () => {
+    const config = getConfigurationInstance({
+      host: 'es1',
+      port: 5455,
+      httpAuth: { username: 'Bruce', password: 'supersecret' }
+    });
+
+    expect(config.hosts).to.deep.equal(['http://es1:5455']);
+    config._getClient();
+    expect(elasticsearchMock.Client).to.have.been.calledWith({ hosts: ['http://es1:5455'], httpAuth: config.httpAuth });
   });
 
   describe('The _getIndexConfiguration function', () => {
