@@ -95,6 +95,15 @@
         "dtstamp": {
           "type": "date"
         },
+        "isRecurrenceMaster": {
+          "type": "boolean"
+        },
+        "recurrenceId": {
+          "type": "date"
+        },
+        "class": {
+          "type": "keyword"
+        },
         "organizer" : {
           "properties": {
             "email": { 
