@@ -1,0 +1,153 @@
+{
+  "settings": {
+    "analysis": {
+      "filter": {
+        "nGram_filter": {
+          "type": "nGram",
+          "min_gram": 1,
+          "max_gram": 36,
+          "token_chars": [
+            "letter",
+            "digit",
+            "punctuation",
+            "symbol"
+          ]
+        },
+        "truncate_filter": {
+          "type": "truncate",
+           "length": 36
+        }
+      },
+      "analyzer": {
+        "nGram_analyzer": {
+          "type": "custom",
+          "tokenizer": "whitespace",
+          "filter": [
+            "truncate_filter",
+            "lowercase",
+            "asciifolding",
+            "nGram_filter"
+          ]
+        },
+        "whitespace_analyzer": {
+          "type": "custom",
+          "tokenizer": "whitespace",
+          "filter": [
+            "truncate_filter",
+            "lowercase",
+            "asciifolding"
+          ]
+        },
+        "email_analyzer": {
+          "type": "custom",
+          "tokenizer": "uax_url_email",
+          "filter": [
+            "lowercase",
+            "stop"
+          ]
+        }
+      }
+    }
+  },
+  "mappings": {
+    "events": {
+      "_all": {
+        "analyzer": "nGram_analyzer",
+        "search_analyzer": "whitespace_analyzer"
+      },
+      "properties": {
+        "uid": {
+          "type": "string",
+          "index" : "not_analyzed"
+        },
+        "calendarId": {
+          "type": "string",
+          "index" : "not_analyzed"
+        },
+        "userId": {
+          "type": "string",
+          "index" : "not_analyzed"
+        },
+        "sequence": {
+          "type": "string",
+          "analyzer": "nGram_analyzer",
+          "search_analyzer": "whitespace_analyzer"
+        },
+        "summary" : {
+          "type": "string",
+          "analyzer": "nGram_analyzer",
+          "search_analyzer": "whitespace_analyzer"
+        },
+        "description" : {
+          "type": "string",
+          "analyzer": "nGram_analyzer",
+          "search_analyzer": "whitespace_analyzer"
+        },
+        "allDay": {
+          "type": "boolean"
+        },
+        "durationInDays": {
+          "type": "short"
+        },
+        "start" : {
+          "type": "date"
+        },
+        "end" : {
+          "type": "date"
+        },
+        "dtstamp": {
+          "type": "date"
+        },
+        "isRecurrenceMaster": {
+          "type": "boolean"
+        },
+        "recurrenceId": {
+          "type": "date"
+        },
+        "class": {
+          "type": "string",
+          "index": "not_analyzed"
+        },
+        "organizer" : {
+          "properties": {
+            "email": {
+              "type": "string", 
+              "index": "not_analyzed",
+              "fields": {
+                "full": {
+                  "type": "string",
+                  "analyzer": "email_analyzer"
+                }
+              }
+            },
+            "cn": {
+              "type": "string",
+              "analyzer": "nGram_analyzer",
+              "search_analyzer": "whitespace_analyzer"
+            }
+          }
+        },
+        "attendees" : {
+          "properties": {
+            "email": {
+              "type": "string",
+              "analyzer": "nGram_analyzer",
+              "search_analyzer": "whitespace_analyzer",
+              "fields": {
+                "full": {
+                  "type": "string",
+                  "analyzer": "email_analyzer"
+                }
+              }
+            },
+            "cn": {
+              "type": "string",
+              "analyzer": "nGram_analyzer",
+              "search_analyzer": "whitespace_analyzer"
+            }
+          }
+        }
+      }
+    }
+  }
+}
