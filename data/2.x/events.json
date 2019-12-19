@@ -98,16 +98,6 @@
         "dtstamp": {
           "type": "date"
         },
-        "isRecurrenceMaster": {
-          "type": "boolean"
-        },
-        "recurrenceId": {
-          "type": "date"
-        },
-        "class": {
-          "type": "string",
-          "index": "not_analyzed"
-        },
         "organizer" : {
           "properties": {
             "email": {
